@@ -1,0 +1,3 @@
+/home/margulanos/proga/tasks/week01/task3/build/CMakeFiles/main.dir
+/home/margulanos/proga/tasks/week01/task3/build/CMakeFiles/edit_cache.dir
+/home/margulanos/proga/tasks/week01/task3/build/CMakeFiles/rebuild_cache.dir
