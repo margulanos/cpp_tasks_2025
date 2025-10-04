@@ -110,6 +110,7 @@ private:
 
 
 std::ofstream Dice_output("Dice.txt");
+std::ofstream Dice_python("Dice_python.txt");
 
 double expected_value(AbstractDice &ad, unsigned number_of_rolls = 1) {
     auto accum = 0llu;
@@ -146,7 +147,9 @@ void build_histogram(AbstractDice &ad, const std::string &title,
     for (unsigned value = min_value; value <= max_value; value += bin) {
         double prob = 0;
         for (unsigned i = value; i < value + bin; i++) {
-            prob += value_probability(value, ad, number_of_rolls);
+            double prob_tmp = value_probability(i, ad, number_of_rolls);
+            Dice_python << i << " " << prob_tmp << std::endl;
+            prob += prob_tmp;
         }
         probabilities.push_back(prob);
         total_prob += prob;
@@ -273,6 +276,7 @@ int main() {
     build_histogram(double_dice, "DoubleDice", 1, 100, 5, 20000);
     build_histogram(double_dice, "DoubleDiceAlt", 1, 100, 5, 20000);
     Dice_output.close();
+    Dice_python.close();
 
     return 0;
 }
