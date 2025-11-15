@@ -75,15 +75,13 @@ private:
 class DoubleDice: public PenaltyDice, public BonusDice {
 public:
     DoubleDice(AbstractDice &dice):
-        d(dice), PenaltyDice(dice), BonusDice(dice) { }
+        PenaltyDice(dice), BonusDice(dice) { }
     unsigned roll() override {
         
         unsigned penalty_roll = PenaltyDice::roll();
         unsigned bonus_roll = BonusDice::roll();
         return (penalty_roll + bonus_roll) / 2;
     }
-private:
-    AbstractDice &d;
 };
 
 
