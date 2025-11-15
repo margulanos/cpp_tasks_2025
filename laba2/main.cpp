@@ -2,6 +2,7 @@
 #include <stdexcept>
 #include <vector>
 #include <iostream>
+#include <utility>
 
 
 
@@ -16,6 +17,7 @@ private:
 
     Grid(T *data, size_type y_size, size_type x_size):
     data(data), y_size(y_size), x_size(x_size) {}
+    
 
 
     //Задание 2, класс строки для записи
@@ -44,11 +46,11 @@ private:
     //Задание 2, класс строки для чтения
     class ConstRow {
     private:
-        T * row_data;
+        const T * row_data;
         size_type row_size;
 
     public:
-        ConstRow(T * data, size_type size) :
+        ConstRow(const T * data, size_type size) :
             row_data{data}, row_size{size} {}
 
         const T& operator[](size_type x_idx) const {
@@ -62,37 +64,88 @@ private:
 
 public:
     Grid<T>& operator=(T const &t) {
-        for (auto it = data, end = data + x_size * y_size; it != end; ++it)
-            *it = t;
+        size_type cnt = 0;
+        try {
+            for (; cnt < x_size * y_size; ++cnt) {
+                data[cnt] = t;
+            }
+        } catch (...) {
+            for (size_type i = 0; i < cnt; ++i) {
+                try {
+                    data[i] = T();
+                } catch (...) {
+                    //игнорируем
+                }
+            }
+            throw;
+        }
         return *this;
-    }   
+    }
 
 
     //Задание 1, пункт 1 (неявное преобразование)
-    Grid(T const &t) : data{new T[1]}, y_size{1}, x_size{1} {
-        *data = t;
-    }
+    Grid(T const &t) :
+        data{nullptr}, y_size{0}, x_size{0} {
+            T* new_data = new T[1];
+            try {
+                *new_data = t; //если тут исключение, удаляем выделенную память
+            } catch (...) {    //и передаем исключение дальше
+                delete[] new_data;
+                throw;
+            }
+            data = new_data;
+            y_size = 1;
+            x_size = 1;
+        }
 
     //Задание 1, пункт 2 (конструктор с размером)
-    Grid(size_type y_size,size_type x_size) : data{new T[x_size * y_size]}, y_size{y_size}, x_size{x_size} {
-        for (auto it = data, end = data + x_size * y_size; it != end; ++it)
-            *it = T();
-    }
+    Grid(size_type y_size, size_type x_size) :
+        data{nullptr}, y_size{0}, x_size{0} {
+            T* new_data = new T[x_size * y_size];
+            try {
+                for (size_type i = 0; i < y_size * x_size; ++i)
+                    new_data[i] = T();
+            } catch (...) {
+                delete[] new_data;
+                throw;
+            }
+            data = new_data;
+            this->y_size = y_size;
+            this->x_size = x_size;   
+        }
 
     //Задание 1, пункт 3 (конструктор с размером и значением)
-    Grid(size_type y_size,size_type x_size, const T& t) : data{new T[x_size * y_size]}, y_size{y_size}, x_size{x_size} {
-        for (auto it = data, end = data + x_size * y_size; it != end; ++it)
-            *it = t;
-    }
+    Grid(size_type y_size,size_type x_size, const T& t) :
+        data{nullptr}, y_size{0}, x_size{0} {
+            T* new_data = new T[y_size * x_size];
+            try {
+                for (size_type i = 0; i < y_size * x_size; ++i)
+                    new_data[i] = t;
+            } catch (...) {
+                delete[] new_data;
+                throw;
+            }
+            data = new_data;
+            this->y_size = y_size;
+            this->x_size = x_size;
+        }
 
     //Задание 1, конструктор копирования
     Grid(const Grid<T>& other) :
-        data{new T[other.y_size * other.x_size]},
-        y_size{other.y_size},
-        x_size{other.x_size} {
-        for (size_type i = 0; i < y_size * x_size; ++i)
-            data[i] = other.data[i]; 
+        data{nullptr}, y_size{0}, x_size{0} {
+            T* new_data = new T[other.y_size * other.x_size];
+            try {
+                for (size_type i = 0; i < other.y_size * other.x_size; ++i)
+                    new_data[i] = other.data[i]; 
+            } catch (...) {
+                delete[] new_data;
+                throw;
+            }
+            data = new_data;
+            this->y_size = other.y_size;
+            this->x_size = other.x_size;
         }
+
 
     //Задание 1, конструктор перемещения
     Grid(Grid<T>&& other) noexcept : 
@@ -140,7 +193,7 @@ public:
 
 
 
-    T operator()(size_type y_idx, size_type x_idx) const {
+    const T& operator()(size_type y_idx, size_type x_idx) const {
         return data[y_idx * x_size + x_idx];
     }
 
@@ -199,29 +252,62 @@ public:
     MultiGrid() : data(nullptr), x_size(0) {}
 
     //неявное преобразование
-    MultiGrid(T const &t) : data{new T[1]}, x_size{1} {
-        *data = t;
-    }
+    MultiGrid(T const &t) :
+        data{nullptr}, x_size{0} {
+            T* new_data = new T[1];
+            try {
+                *new_data = t;
+            } catch (...) {
+                delete[] new_data;
+                throw;
+            }
+            data = new_data;
+            x_size = 1;
+        }
     
     //конструктор с размером
     MultiGrid(size_type size) :
-        data{new T[size]}, x_size{size} {
-            for (size_type i = 0; i < x_size; ++i)
-                data[i] = T();
+        data{nullptr}, x_size{0} {
+            T* new_data = new T[size];
+            try {
+                for (size_type i = 0; i < size; ++i)
+                    new_data[i] = T();
+            } catch (...) {
+                delete[] new_data;
+                throw;
+            }
+            data = new_data;
+            x_size = size;   
         }
 
     //конструктор с размером и значением
     MultiGrid(size_type size, const T& t) :
-        data{new T[size]}, x_size{size} {
-            for (size_type i = 0; i < x_size; ++i)
-                data[i] = t;
+        data{nullptr}, x_size{0} {
+            T* new_data = new T[size];
+            try {
+                for (size_type i = 0; i < size; ++i)
+                    new_data[i] = t;
+            } catch (...) {
+                delete[] new_data;
+                throw;
+            }
+            data = new_data;
+            x_size = size;   
         }
     
     //конструктор копирования
     MultiGrid(const MultiGrid<T, 1>& other) :
-        data{new T[other.x_size]}, x_size{other.x_size} {
-            for (size_type i = 0; i < x_size; ++i)
-                data[i] = other.data[i];
+        data{nullptr}, x_size{0} {
+            T* new_data = new T[other.x_size];
+            try {
+                for (size_type i = 0; i < other.x_size; ++i)
+                    new_data[i] = other.data[i]; 
+            } catch (...) {
+                delete[] new_data;
+                throw;
+            }
+            data = new_data;
+            x_size = other.x_size;
         }
     
     //конструктор перемещения
@@ -243,7 +329,7 @@ public:
     }
     
     //оператор присваивания перемещением
-    MultiGrid& operator=(MultiGrid&& other) noexcept {
+    MultiGrid<T, 1>& operator=(MultiGrid<T, 1>&& other) noexcept {
         if (&other == this) {
             return *this;
         }
@@ -308,29 +394,68 @@ public:
     
     //конструктор с размерами
     template<typename... Args>
-    MultiGrid(size_type first_dim, Args... other_dims) :
-        data{new MultiGrid<T, Dimension - 1>[first_dim]}, first_size{first_dim} {
-            for (size_type i = 0; i < first_size; ++i) {
-                data[i] = MultiGrid<T, Dimension - 1>(other_dims...);
+    MultiGrid(size_type first_dim, Args&&... other_dims) :
+        data{nullptr}, first_size{0}  {
+            MultiGrid<T, Dimension - 1>* new_data = new MultiGrid<T, Dimension - 1>[first_dim];
+        
+            size_type cnt = 0;
+            try {
+                for (; cnt < first_dim; ++cnt) {
+                    new_data[cnt] = MultiGrid<T, Dimension - 1>(std::forward<Args>(other_dims)...);
+                }
+            } catch (...) {
+                for (size_type i = 0; i < cnt; ++i) {
+                    new_data[i].~MultiGrid<T, Dimension - 1>();
+                }
+                delete[] new_data;
+                throw;
             }
+            data = new_data;
+            first_size = first_dim;
         }
     
     //конструктор с размерами и значением
     template<typename... Args>
-    MultiGrid(size_type first_dim, Args... other_dims, const T& t) :
-        data{new MultiGrid<T, Dimension - 1>[first_dim]}, first_size{first_dim} {
-        for (size_type i = 0; i < first_size; ++i) {
-            data[i] = MultiGrid<T, Dimension - 1>(other_dims..., t);
+    MultiGrid(size_type first_dim, Args&&... other_dims, const T& t) :
+        data{nullptr}, first_size{0}  {
+            MultiGrid<T, Dimension - 1>* new_data = new MultiGrid<T, Dimension - 1>[first_dim];
+        
+            size_type cnt = 0;
+            try {
+                for (; cnt < first_dim; ++cnt) {
+                    new_data[cnt] = MultiGrid<T, Dimension - 1>(std::forward<Args>(other_dims)..., t);
+                }
+            } catch (...) {
+                for (size_type i = 0; i < cnt; ++i) {
+                    new_data[i].~MultiGrid<T, Dimension - 1>();
+                }
+                delete[] new_data;
+                throw;
+            }
+            data = new_data;
+            first_size = first_dim;
         }
-    }
-    
+
     //конструктор копирования
     MultiGrid(const MultiGrid<T, Dimension>& other) :
-        data{new MultiGrid<T, Dimension - 1>[other.first_size]}, 
-        first_size{other.first_size} {
-        for (size_type i = 0; i < first_size; ++i)
-            data[i] = other.data[i];
-    }
+        data{nullptr}, first_size{0}  {
+            MultiGrid<T, Dimension - 1>* new_data = new MultiGrid<T, Dimension - 1>[other.first_size];
+        
+            size_type cnt = 0;
+            try {
+                for (; cnt < other.first_size; ++cnt) {
+                    new_data[cnt] = other.data[cnt];
+                }
+            } catch (...) {
+                for (size_type i = 0; i < cnt; ++i) {
+                    new_data[i].~MultiGrid<T, Dimension - 1>();
+                }
+                delete[] new_data;
+                throw;
+            }
+            data = new_data;
+            first_size = other.first_size;
+        }
     
     //конструктор перемещения
     MultiGrid(MultiGrid<T, Dimension>&& other) noexcept :
@@ -385,15 +510,15 @@ public:
 
     //оператор круглых скобок
     template<typename... Indices>
-    const T& operator()(size_type first, Indices... rest) const {
-        if (first >= first_size) throw std::out_of_range("Index out of range");
-        return data[first](rest...);
+    const T& operator()(size_type first_idx, Indices... other_idx) const {
+        if (first_idx >= first_size) throw std::out_of_range("Index out of range");
+        return data[first_idx](other_idx...);
     }
     
     template<typename... Indices>
-    T& operator()(size_type first, Indices... rest) {
-        if (first >= first_size) throw std::out_of_range("Index out of range");
-        return data[first](rest...);
+    T& operator()(size_type first_idx, Indices... other_idx) {
+        if (first_idx >= first_size) throw std::out_of_range("Index out of range");
+        return data[first_idx](other_idx...);
     }
 };
 
@@ -431,8 +556,3 @@ int main() {
     g2 = g3[1];
     assert(1.0f == g2(1, 1));
 }
-
-
-
-
-
